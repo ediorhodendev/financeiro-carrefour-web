@@ -1,0 +1,203 @@
+<a href="#main" class="skip-link">Pular para o conteúdo</a>
+@if (mobileOpen()) {
+  <button class="mobile-scrim" aria-label="Fechar menu" (click)="mobileOpen.set(false)"></button>
+}
+<aside class="sidebar" [class.mobile-open]="mobileOpen()">
+  <a class="brand" routerLink="/" aria-label="Carrefour Financeiro, início"
+    ><img src="/brand/carrefour.svg" alt="Carrefour" /><span class="brand-divider"></span
+    ><strong>Financeiro<span>PAINEL DE OPERAÇÕES</span></strong></a
+  >
+  <span class="nav-label">WORKSPACE</span>
+  <nav aria-label="Navegação principal">
+    @for (item of nav; track item.path) {
+      <a
+        [routerLink]="item.path"
+        routerLinkActive="active"
+        [routerLinkActiveOptions]="{ exact: item.exact }"
+        (click)="mobileOpen.set(false)"
+        ><app-icon [name]="item.icon" /><span>{{ item.label }}</span>
+        @if (item.path === '/mensageria') {
+          <span class="nav-dot"></span>
+        }
+      </a>
+    }
+  </nav>
+  <div class="sidebar-bottom">
+    <div class="demo-note">
+      <app-icon name="shield" />
+      <div><b>Ambiente de demonstração</b><span>Operações com rastreabilidade</span></div>
+    </div>
+    <p>Projeto técnico independente.<br />Sem vínculo institucional com o Carrefour.</p>
+    <span class="version">FINANCEIRO · V2 <i>ANGULAR 22</i></span>
+  </div>
+</aside>
+<div class="workspace">
+  <header class="topbar">
+    <div class="topbar-left">
+      <button
+        class="icon-button mobile-toggle"
+        aria-label="Abrir menu"
+        [attr.aria-expanded]="mobileOpen()"
+        (click)="mobileOpen.set(!mobileOpen())"
+      >
+        <app-icon name="menu" /></button
+      ><span class="breadcrumb">Workspace <span>/</span> <b>Operações financeiras</b></span>
+    </div>
+    <div class="topbar-right">
+      <span class="health-pill" [class.healthy]="store.status()?.ledger && store.status()?.balance"
+        ><i></i
+        >{{
+          store.status()?.ledger && store.status()?.balance
+            ? 'APIs disponíveis'
+            : 'Verificando ambiente'
+        }}</span
+      ><span class="topbar-separator"></span>
+      @if (store.session.connected()) {
+        <button class="session-button" (click)="connectionOpen.set(true)">
+          <span class="avatar">DC</span
+          ><span
+            >Demo customer<small>Sessão · {{ store.minutesLeft() }} min</small></span
+          ><app-icon name="down" />
+        </button>
+      } @else {
+        <button class="button primary compact" (click)="connectionOpen.set(true)">
+          <app-icon name="key" />Conectar ambiente
+        </button>
+      }
+    </div>
+  </header>
+  @if (store.config().mode === 'preview') {
+    <div class="preview-banner">
+      Prévia de interface · dados simulados para validação visual. Execute o Docker para usar o
+      backend real.
+    </div>
+  }
+  <main id="main">
+    <div class="account-strip">
+      <span class="account-icon"><app-icon name="wallet" /></span>
+      <div>
+        <span class="eyebrow">CONTA SELECIONADA</span>
+        @if (store.accountId()) {
+          <select
+            aria-label="Conta selecionada"
+            [ngModel]="store.accountId()"
+            (ngModelChange)="store.selectAccount($event)"
+          >
+            @for (id of store.accounts(); track id) {
+              <option [value]="id">{{ id }}</option>
+            }
+          </select>
+        } @else {
+          <span class="muted">Conecte o ambiente para começar</span>
+        }
+      </div>
+      @if (store.session.connected()) {
+        <button class="text-button account-link" (click)="connectionOpen.set(true)">
+          Gerenciar contas <app-icon name="chevron" />
+        </button>
+      }
+      <span class="account-secure"
+        ><app-icon name="shield" />{{
+          store.session.connected() ? 'Conexão autenticada via JWT' : 'Sessão não conectada'
+        }}</span
+      >
+    </div>
+    <router-outlet />
+    <footer>
+      Financeiro Carrefour <span>Ledger imutável · leitura assíncrona · valores em BRL</span
+      ><span>Projeto demonstrativo</span>
+    </footer>
+  </main>
+</div>
+<div class="toast-stack" aria-live="polite">
+  @for (notice of store.notices(); track notice.id) {
+    <div class="toast" [class]="'toast ' + notice.kind">
+      <app-icon [name]="notice.kind === 'success' ? 'check' : 'info'" />
+      <div>
+        <strong>{{ notice.title }}</strong>
+        <p>{{ notice.detail }}</p>
+      </div>
+      <button
+        class="icon-button"
+        (click)="store.dismiss(notice.id)"
+        aria-label="Fechar notificação"
+      >
+        <app-icon name="close" />
+      </button>
+    </div>
+  }
+</div>
+@if (connectionOpen()) {
+  <div class="modal-backdrop" (click)="connectionOpen.set(false)">
+    <section
+      class="modal"
+      appModalFocus
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="connect-title"
+      (click)="$event.stopPropagation()"
+      (keydown.escape)="connectionOpen.set(false)"
+    >
+      <div class="modal-header">
+        <span class="square-icon"><app-icon name="key" /></span
+        ><button
+          class="icon-button"
+          aria-label="Fechar conexão"
+          (click)="connectionOpen.set(false)"
+        >
+          <app-icon name="close" />
+        </button>
+      </div>
+      <h2 id="connect-title">Conectar ao ambiente</h2>
+      <p class="muted">
+        Use o acesso de demonstração da API ou informe um JWT existente. O token fica somente na
+        memória desta aba.
+      </p>
+      <div class="tabs">
+        <button [class.selected]="!manual" (click)="manual = false">Acesso demo</button
+        ><button [class.selected]="manual" (click)="manual = true">Token próprio</button>
+      </div>
+      @if (manual) {
+        <label
+          >Token JWT<textarea
+            [(ngModel)]="token"
+            rows="3"
+            autocomplete="off"
+            spellcheck="false"
+            placeholder="Cole seu token"
+          ></textarea></label
+        ><label>ID da conta<input [(ngModel)]="account" placeholder="UUID da conta" /></label>
+      } @else {
+        <div class="info-box">
+          <app-icon name="info" />
+          <p>
+            O acesso demo chama <code>POST /demo/access</code>. Nenhum crédito ou débito é
+            registrado automaticamente.
+          </p>
+        </div>
+      }
+      <button class="button primary full" [disabled]="store.connecting()" (click)="connect()">
+        {{ store.connecting() ? 'Conectando…' : 'Conectar ambiente' }}<app-icon name="arrow" />
+      </button>
+      @if (store.session.connected()) {
+        <div class="modal-divider"></div>
+        <h3>Gerenciar contas</h3>
+        <label
+          >Selecionar outra conta<input
+            [(ngModel)]="accountInput"
+            placeholder="UUID de uma conta do mesmo cliente"
+        /></label>
+        <div class="button-row">
+          <button class="button secondary" (click)="selectAccount()">Selecionar</button
+          ><button class="button secondary" (click)="store.openAccount()">Criar conta</button>
+        </div>
+        <button
+          class="text-button danger-text full"
+          (click)="store.disconnect(); connectionOpen.set(false)"
+        >
+          <app-icon name="logout" />Encerrar sessão
+        </button>
+      }
+    </section>
+  </div>
+}
