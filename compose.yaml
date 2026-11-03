@@ -1,0 +1,21 @@
+name: financeiro-carrefour-web
+services:
+  frontend:
+    build: .
+    ports: ['127.0.0.1:${FRONTEND_PORT:-4200}:8080']
+    environment:
+      LEDGER_URL: http://ledger-api:8080
+      BALANCE_URL: http://balance-api:8080
+      RABBITMQ_URL: http://rabbitmq:15672
+      RABBITMQ_USER: ${RABBITMQ_USER:-bank}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-local-demo-rabbit-only}
+    networks: [backend]
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    restart: unless-stopped
+networks:
+  backend:
+    external: true
+    name: ${BACKEND_NETWORK:-financeiro-carrefour-v2_default}
